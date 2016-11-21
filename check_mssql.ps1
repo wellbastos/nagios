@@ -3,7 +3,7 @@
    script for nagios to check SQL DataBases , Connection Time, Jobs.	
   .DESCRIPTION
    Auther Yossi Bitton yossi@edp.co.il
-   Date: November 2015   
+   Date: November 2016   
   .EXAMPLE
 	.\check_mssql.ps1 
 #>
