@@ -6,6 +6,22 @@
    Date: November 2016   
   .EXAMPLE
 	.\check_mssql.ps1 
+	
+   for Nagios NRPE edit NSC.ini or nsclient.ini and add the following line under section:
+	[Wrapped Scripts] 
+	 check_mssql=check_mssql.ps1 $ARG1$
+	
+	[Script Wrappings]
+	ps1 = cmd /c echo scripts\%SCRIPT% %ARGS%; exit($lastexitcode) | powershell.exe -ExecutionPolicy Bypass -command -
+	
+	from nagios run:
+	./check_nrpe -H <MSSQL IP Address> -c check_mssql -a '-CheckType DBStatus -Exclude DB01,DB03' 
+	or 
+	./check_nrpe -H <MSSQL IP Address> -c check_mssql -a 'DBStatus'
+	./check_nrpe -H <MSSQL IP Address> -c check_mssql -a 'ConTime'
+	./check_nrpe -H <MSSQL IP Address> -c check_mssql -a 'Jobs'
+	if no instance specify the script check the default instance (COMPUTERNAME)
+	to monitor specify instance add -InstanceName <Instance Name>.	
 #>
 
 [CmdletBinding()]
