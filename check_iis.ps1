@@ -5,9 +5,21 @@
    Auther Yossi Bitton yossi@edp.co.il
    Date: 8-2016   
   .EXAMPLE
-	.\check_iis.ps1 -CheckType Sites -Exclude site01,oldsite2 -$DebugMode $true
+	.\check_iis.ps1 -CheckType Sites -Exclude site01,oldsite2 -DebugMode $true
 	.\check_iis.ps1 -CheckType AppPool 
 	.\check_iis.ps1  Sites
+	
+	for Nagios NRPE edit NSC.ini or nsclient.ini and add the following line under section:
+	[Wrapped Scripts] 
+	 check_iis=check_iis.ps1 $ARG1$
+	
+	[Script Wrappings]
+	ps1 = cmd /c echo scripts\%SCRIPT% %ARGS%; exit($lastexitcode) | powershell.exe -ExecutionPolicy Bypass -command -
+	
+	from nagios run:
+	./check_nrpe -H <IIS IP Address> -c check_iis -a '-CheckType Sites -Exclude site01,oldsite2' 
+	or 
+	./check_nrpe -H <IIS IP Address> -c check_iis -a 'Sites site01,oldsite2' 
 #>
 
 [CmdletBinding()]
