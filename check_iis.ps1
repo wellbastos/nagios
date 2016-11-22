@@ -46,8 +46,9 @@ Function Print_Debug ($msg){
 
 #Load_Exchange_Module
 function Load_IIS_Module() {
+	
 	Print_Debug "Load_IIS_Module..."
-	$retCode = $false
+	$retCode = $unknown
 	try {
 			$desc = [System.Reflection.Assembly]::LoadFrom("C:\windows\system32\inetsrv\Microsoft.Web.Administration.dll" )
 			Print_Debug "Load Status=$desc"
@@ -68,7 +69,7 @@ return $retCode , $desc
 }
 
 Function Get_AppPool_Status () {
-	$retCode = $unknowns
+	$retCode = $unknown
 	$desc = $null
 	$perfData = ""
 	$failedAppPool = 0
@@ -137,7 +138,7 @@ Function Get_AppPool_Status () {
 
 
 Function Get_Sites_Status () {
-	$retCode = $unknowns
+	$retCode = $unknown
 	$desc = $null
 	$perfData = ""
 	$failedSites = 0
