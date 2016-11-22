@@ -108,7 +108,7 @@ return $retCode, "$desc$perfData"
 # Load SQL power shell module	
 	function Load_Sql_Smo () {
 	Print_Debug "Function: Load_Sql_Smo. "
-	$retCode = $false
+	$retCode = $unknown
 	$desc = ""
 	try {
 		if ([System.Reflection.Assembly]::LoadWithPartialName("Microsoft.SqlServer.Smo")){
