@@ -6,6 +6,7 @@
    Date: November 2016   
   .EXAMPLE
 	.\check_mssql.ps1 
+   version 1.0.4	
 	
    for Nagios NRPE edit NSC.ini or nsclient.ini and add the following line under section:
 	[Wrapped Scripts] 

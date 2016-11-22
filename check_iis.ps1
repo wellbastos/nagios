@@ -28,12 +28,8 @@ Param(
 	[ValidateSet("Sites", "AppPool")] 
 	[String]$CheckType ,
 	[parameter(Mandatory=$false,Position=2)]
-	[int]$warn ,
-	[parameter(Mandatory=$false,Position=3)]
-	[int]$crit ,
-	[parameter(Mandatory=$false,Position=4)]
 	[boolean]$DebugMode , 
-	[parameter(Mandatory=$false,Position=5)]
+	[parameter(Mandatory=$false,Position=3)]
 	[String[]]$Exclude
 	
 
