@@ -7,7 +7,7 @@
    Date: 8-2016   
    Fixed: 20.12.2016
    1: Total sites ot application pools count fixed when -exclude not=$null.
-   2: wrong result when using -Exclude.  
+   2: wrong result when using -Exclude. . 
   .EXAMPLE
 	.\check_iis.ps1 -CheckType Sites -Exclude site01,oldsite2 -DebugMode $true
 	.\check_iis.ps1 -CheckType AppPool 
