@@ -3,11 +3,16 @@
    script for nagios to check IIS Servers Sites and AppPool.
   .DESCRIPTION
    Auther Yossi Bitton yossi@edp.co.il
+   Version 1.07
    Date: 8-2016   
+   Fixed: 20.12.2016
+   1: Total sites ot application pools count fixed when -exclude not=$null.
+   2: wrong result when using -Exclude. 
   .EXAMPLE
 	.\check_iis.ps1 -CheckType Sites -Exclude site01,oldsite2 -DebugMode $true
 	.\check_iis.ps1 -CheckType AppPool 
 	.\check_iis.ps1  Sites
+	.\check_iis.ps1  AppPool
 	
 	for Nagios NRPE edit NSC.ini or nsclient.ini and add the following line under section:
 	[Wrapped Scripts] 
@@ -17,9 +22,9 @@
 	ps1 = cmd /c echo scripts\%SCRIPT% %ARGS%; exit($lastexitcode) | powershell.exe -ExecutionPolicy Bypass -command -
 	
 	from nagios run:
-	./check_nrpe -H <IIS IP Address> -c check_iis -a '-CheckType Sites -Exclude site01,oldsite2' 
+	./check_nrpe -H <IIS IP Address> -t 30 -c check_iis -a '-CheckType Sites -Exclude site01,oldsite2' 
 	or 
-	./check_nrpe -H <IIS IP Address> -c check_iis -a 'Sites site01,oldsite2' 
+	./check_nrpe -H <IIS IP Address> -t 30 -c check_iis -a 'Sites site01,oldsite2' 
 #>
 
 [CmdletBinding()]
@@ -28,8 +33,12 @@ Param(
 	[ValidateSet("Sites", "AppPool")] 
 	[String]$CheckType ,
 	[parameter(Mandatory=$false,Position=2)]
-	[boolean]$DebugMode , 
+	[int]$warn ,
 	[parameter(Mandatory=$false,Position=3)]
+	[int]$crit ,
+	[parameter(Mandatory=$false,Position=4)]
+	[boolean]$DebugMode , 
+	[parameter(Mandatory=$false,Position=5)]
 	[String[]]$Exclude
 	
 
@@ -46,9 +55,8 @@ Function Print_Debug ($msg){
 
 #Load_Exchange_Module
 function Load_IIS_Module() {
-	
 	Print_Debug "Load_IIS_Module..."
-	$retCode = $unknown
+	$retCode = $false
 	try {
 			$desc = [System.Reflection.Assembly]::LoadFrom("C:\windows\system32\inetsrv\Microsoft.Web.Administration.dll" )
 			Print_Debug "Load Status=$desc"
@@ -69,7 +77,7 @@ return $retCode , $desc
 }
 
 Function Get_AppPool_Status () {
-	$retCode = $unknown
+	$retCode = $unknowns
 	$desc = $null
 	$perfData = ""
 	$failedAppPool = 0
@@ -79,9 +87,11 @@ Function Get_AppPool_Status () {
 		$serverManager = [Microsoft.Web.Administration.ServerManager]::OpenRemote($server)
 		if ($serverManager -ne $null) {
 			Print_Debug "Connected to $serverManager"
-			$allAppPool = $serverManager.ApplicationPools | Where {$_.AutoStart -eq $True } | Select Name,AutoStart,State
+			$allAppPool = $serverManager.ApplicationPools | Select Name,State
+			Print_Debug = "All Application Pools: $allAppPool"
 			$allAppPool = [Array]$allAppPool
 			if($allAppPool.Count -gt 0) {
+				Print_Debug "Exclude list=$Exclude"
 				$totalAppPool = $allAppPool.Count
 				foreach($pool in $allAppPool){
 					$skipPool = $False
@@ -90,39 +100,44 @@ Function Get_AppPool_Status () {
 					$poolList += $appName + ", "
 					Print_Debug "Debug: Name: $appName , Status: $AppPoolStatus"
 					if($Exclude -ne $null){
-						Print_Debug "Exclude list=$Exclude"
 						foreach($ex in $Exclude) {
 							if ($appName -eq $ex) {
 								$skipPool = $True
+								Print_Debug "Application Pool $appName In Excluded list: $Exclude , skipping $appName ."
 								break
 							}
 						}
 					}	
-					Print_Debug "skipPool = $skipPool"
 					if($AppPoolStatus -ne "Started" -and $skipPool -eq $False) {
 						$failedAppPool +=1;
 						$descErr += "$appName, " 
 					}
 				}
+				if($Exclude -ne $null){
+					$excludeCount = $Exclude.Count
+					Print_Debug "Exclude Count: $excludeCount"
+					$totalAppPool-=$excludeCount
+					Print_Debug "Total App Pool after exclude: $totalAppPool"
+				}
 				if 	($failedAppPool -gt 0) {
-					$perfData = "|'Total failed ApplicationPools'=$failedAppPool;$totalAppPool;;$failedAppPool"
+					$perfData = "|'Total failed Application Pools'=$failedAppPool;$totalAppPool;;$failedAppPool"
 					if ($Exclude -eq $Null) {
-						$desc = "Total failed ApplicationPools: [$failedAppPool/$totalAppPool], Name: $descErr $perfData"
+						$desc = "Total failed Application Pools: [$failedAppPool/$totalAppPool], Name: $descErr $perfData"
 					}else{
-						$desc = "Total failed ApplicationPools: [$failedAppPool/$totalAppPool], Name: $descErr [Exclude=$Exclude] $perfData"
+						$desc = "Total failed Application Pools: [$failedAppPool/$totalAppPool], Name: $descErr [Exclude=$Exclude] $perfData"
 					}
 					$retCode = $critical	
 				}else{
-						Print_Debug "All ApplicationPools are running. [$totalAppPool], Name: $poolList"
+						Print_Debug "All Application Pools are running. [$totalAppPool], Name: $poolList"
 						if($Exclude -eq $Null){
-							$desc = "All ApplicationPools are running. [$totalAppPool]"
+							$desc = "All Application Pools are running. [$totalAppPool]"
 						}else{
-							$desc = "All ApplicationPools are running. [$totalAppPool] [Exclude=$Exclude]" 
+							$desc = "All Application Pools are running. [$totalAppPool] [Exclude=$Exclude]" 
 						}
 						$retCode = $ok
 				}
 			}else{
-				$desc = "No Web ApplicationPools found on $server with autostart"
+				$desc = "No Web Application Pools found on $server"
 				$retCode = $ok
 			}
 		}else{
@@ -138,7 +153,7 @@ Function Get_AppPool_Status () {
 
 
 Function Get_Sites_Status () {
-	$retCode = $unknown
+	$retCode = $unknowns
 	$desc = $null
 	$perfData = ""
 	$failedSites = 0
@@ -148,9 +163,11 @@ Function Get_Sites_Status () {
 		$serverManager = [Microsoft.Web.Administration.ServerManager]::OpenRemote($server)
 		if ($serverManager -ne $null) {
 			Print_Debug "Connected to $serverManager"
-			$allSites = $serverManager.Sites | Where {$_.ServerAutoStart -eq $True } | Select Name,ServerAutoStart,State
+			$allSites = $serverManager.Sites | Select Name,ServerAutoStart,State
 			$allSites = [Array]$allSites
 			if($allSites.Count -gt 0) {
+				Print_Debug "Exclude list=$Exclude"
+				Print_Debug = "All Sites: $allSites"
 				$totalSites = $allSites.Count
 				foreach($site in $allSites){
 					$skipSite = $False
@@ -159,19 +176,24 @@ Function Get_Sites_Status () {
 					$siteList += $siteName + ", "
 					Print_Debug "Debug: Name: $siteName , Status: $siteStatus"
 					if($Exclude -ne $null){
-						Print_Debug "Exclude list=$Exclude"
 						foreach($ex in $Exclude) {
 							if ($siteName -eq $ex) {
 								$skipSite = $True
+								Print_Debug "Site $siteName In Excluded list: $Exclude , skipping $siteName ."
 								break
 							}
 						}
 					}	
-					Print_Debug "skipSite = $skipSite"
 					if($siteStatus -ne "Started" -and $skipSite -eq $False) {
 						$failedSites +=1;
 						$descErr += "$siteName, " 
 					}
+				}
+				if($Exclude -ne $null){
+					$excludeCount = $Exclude.Count
+					Print_Debug "Exclude Count: $excludeCount"
+					$totalSites-=$excludeCount
+					Print_Debug "Total Sites after exclude: $totalSites"
 				}
 				if 	($failedSites -gt 0) {
 					$perfData = "|'Total failed sites'=$failedSites;$totalSites;;$failedSites"
@@ -191,7 +213,7 @@ Function Get_Sites_Status () {
 						$retCode = $ok
 				}
 			}else{
-				$desc = "No Web Sites found on $server with autostart"
+				$desc = "No Web Sites found on $server"
 				$retCode = $ok
 			}
 		}else{
