@@ -113,7 +113,7 @@ return $retCode, "$desc$perfData"
 	try {
 		if ([System.Reflection.Assembly]::LoadWithPartialName("Microsoft.SqlServer.Smo")){
 			$retCode = $true
-			$desc = "SMO module load successful" 
+			$desc = "SMO module load successfuly" 
 		}
 	}catch {
 		$desc = $_.Exception.Message
@@ -133,6 +133,7 @@ return $retCode, "$desc$perfData"
 			# loop in all jobs to check last status
 			$totalJobCount =0
 			$desc = $null
+			Print_Debug "Exclude list=$Exclude"
 			foreach($job in $sqlObj.JobServer.Jobs)
 			{
 				$skipJob = $False
@@ -144,10 +145,10 @@ return $retCode, "$desc$perfData"
 				if($jobEnabled -eq $true -and $HasSchedule -eq $True) {
 					$totalJobCount+=1
 					if($Exclude -ne $null){
-						Print_Debug "Exclude list=$Exclude"
 						foreach($ex in $Exclude) {
 							if ($jobName -eq $ex) {
 								$skipJob = $True
+								Print_Debug "Job $jobName In Excluded list: $Exclude , skipping $jobName ."
 								break
 							}
 						}
@@ -171,14 +172,14 @@ return $retCode, "$desc$perfData"
 				$retCode = $critical 
 			}else{
 				if($Exclude -ne $Null) {
-					$desc = "All SQL jobs are completed successful, Total:($successCount) [Excluded Jobs: $Exclude]"
+					$desc = "All SQL jobs are completed successfuly, Total:($successCount) [Excluded Jobs: $Exclude]"
 				}else{
-					$desc = "All SQL jobs are completed successful, Total:($successCount)"
+					$desc = "All SQL jobs are completed successfuly, Total:($successCount)"
 				}		
 				$retCode = $ok 
 			}
 		}else{
-			$desc = "No jobs found in SQL server $sqlObj"
+			$desc = "No scheduled and enabled jobs found in SQL server $sqlObj"
 			$retCode = $ok
 		}
 	return $retCode , $desc
@@ -202,6 +203,7 @@ return $retCode, "$desc$perfData"
 			foreach($ex in $Exclude) {
 				if ($dbName -eq $ex) {
 					$skipDB = $True
+					Print_Debug "Database $dbName In Excluded list: $Exclude , skipping $dbName ."
 					break
 				}
 			}
@@ -213,16 +215,16 @@ return $retCode, "$desc$perfData"
 		}
 	}
 	if 	($failedDBCount -gt 0) {
-		$desc = "$instance Total failed: $failedDBCount/$totalDb $desc "
+		$desc = "Total failed db in: $instance  $failedDBCount/$totalDb $desc "
 		if ($Exclude -ne $null) {
-			$desc = "$instance Total failed: $failedDBCount/$totalDb $desc "
+			$desc = "Total failed db in: $instance $failedDBCount/$totalDb $desc "
 		}
 		$retCode = $critical
 	}else{
 		if($Exclude -ne $Null) {
-			$desc = "$instance All Databases are online. [Total DataBases: $totalDb] [Excluded DB: $Exclude]"
+			$desc = "All Databases on $instance are in online state. [Total DataBases: $totalDb] [Excluded DB: $Exclude]"
 		}else{
-			$desc = "$instance All Databases are online. [Total DataBases: $totalDb]"
+			$desc = "All Databases on $instance are in online state. [Total DataBases: $totalDb]"
 		}		
 		$retCode = $ok
 	}

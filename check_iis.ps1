@@ -7,7 +7,7 @@
    Date: 8-2016   
    Fixed: 20.12.2016
    1: Total sites ot application pools count fixed when -exclude not=$null.
-   2: wrong result when using -Exclude. . 
+   2: wrong result when using -Exclude. 
   .EXAMPLE
 	.\check_iis.ps1 -CheckType Sites -Exclude site01,oldsite2 -DebugMode $true
 	.\check_iis.ps1 -CheckType AppPool 
@@ -25,6 +25,15 @@
 	./check_nrpe -H <IIS IP Address> -t 30 -c check_iis -a '-CheckType Sites -Exclude site01,oldsite2' 
 	or 
 	./check_nrpe -H <IIS IP Address> -t 30 -c check_iis -a 'Sites site01,oldsite2' 
+	
+	For Test Only:
+	$server = $env:COMPUTERNAME
+	[System.Reflection.Assembly]::LoadFrom("C:\windows\system32\inetsrv\Microsoft.Web.Administration.dll" )
+	$serverManager = [Microsoft.Web.Administration.ServerManager]::OpenRemote($server)
+
+	$allSites = $serverManager.Sites | Select Name,ServerAutoStart,State
+	$allAppPool = $serverManager.ApplicationPools  | Select Name,AutoStart,State
+
 #>
 
 [CmdletBinding()]
